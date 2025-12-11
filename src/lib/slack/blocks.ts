@@ -1,3 +1,5 @@
+import type { SlackBlock } from "./types";
+
 export interface ApprovalRequest {
     type: "refund" | "high_value" | "escalation";
     title: string;
@@ -6,7 +8,7 @@ export interface ApprovalRequest {
     requiresResponse?: boolean;
 }
 
-export function buildApprovalBlocks(request: ApprovalRequest, hookToken: string) {
+export function buildApprovalBlocks(request: ApprovalRequest, hookToken: string): SlackBlock[] {
     const urgencyEmoji = request.urgency === "high" ? "🔴" : "🟡";
     const typeLabels = {
         refund: "💰 Refund Request",
@@ -14,7 +16,7 @@ export function buildApprovalBlocks(request: ApprovalRequest, hookToken: string)
         escalation: "🤔 Escalation",
     };
 
-    const blocks: any[] = [
+    const blocks: SlackBlock[] = [
         {
             type: "header",
             text: {
@@ -36,7 +38,7 @@ export function buildApprovalBlocks(request: ApprovalRequest, hookToken: string)
     ];
 
     const fields = Object.entries(request.details).map(([key, value]) => ({
-        type: "mrkdwn",
+        type: "mrkdwn" as const,
         text: `*${key}:*\n${value}`,
     }));
 
@@ -101,30 +103,44 @@ export function buildApprovalBlocks(request: ApprovalRequest, hookToken: string)
     return blocks;
 }
 
-export function buildApprovalResponseBlocks(originalTitle: string, approved: boolean, approverName: string, comment?: string) {
+export function buildApprovalResponseBlocks(
+    originalBlocks: SlackBlock[],
+    approved: boolean,
+    approverName: string,
+    comment?: string
+): SlackBlock[] {
     const statusEmoji = approved ? "✅" : "❌";
     const statusText = approved ? "Approved" : "Denied";
 
-    return [
-        {
-            type: "section",
-            text: {
-                type: "mrkdwn",
-                text: `${statusEmoji} *${originalTitle}* - ${statusText} by <@${approverName}>`,
-            },
+    // Filter out the actions block (buttons) and input block (comment field)
+    // Keep the original content (header, details, etc.)
+    const contentBlocks = originalBlocks.filter(
+        (block): block is Exclude<SlackBlock, { type: "actions" } | { type: "input" }> =>
+            block.type !== "actions" && block.type !== "input"
+    );
+
+    // Add status section at the end
+    const statusBlock: SlackBlock = {
+        type: "section",
+        text: {
+            type: "mrkdwn",
+            text: `${statusEmoji} *${statusText}* by <@${approverName}>`,
         },
-        ...(comment
-            ? [
-                  {
-                      type: "context",
-                      elements: [
-                          {
-                              type: "mrkdwn",
-                              text: `💬 "${comment}"`,
-                          },
-                      ],
-                  },
-              ]
-            : []),
-    ];
+    };
+
+    const commentBlock: SlackBlock[] = comment
+        ? [
+              {
+                  type: "context",
+                  elements: [
+                      {
+                          type: "mrkdwn",
+                          text: `💬 "${comment}"`,
+                      },
+                  ],
+              },
+          ]
+        : [];
+
+    return [...contentBlocks, statusBlock, ...commentBlock];
 }

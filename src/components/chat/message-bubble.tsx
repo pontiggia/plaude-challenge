@@ -1,6 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
+import Markdown from "react-markdown";
 
 interface MessageBubbleProps {
     content: string;
@@ -18,7 +19,9 @@ export function MessageBubble({ content, isUser, children }: MessageBubbleProps)
                     : "bg-muted text-foreground rounded-tl-md"
             )}
         >
-            <p className="whitespace-pre-wrap text-sm leading-relaxed">{content}</p>
+            <div className="text-sm leading-relaxed prose prose-sm dark:prose-invert max-w-none prose-p:my-1 prose-ul:my-1 prose-li:my-0">
+                <Markdown>{content}</Markdown>
+            </div>
             {children}
         </div>
     );

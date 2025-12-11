@@ -5,6 +5,7 @@ import { verifySlackRequest } from "@/lib/slack/verify";
 import { buildApprovalResponseBlocks } from "@/lib/slack/blocks";
 import { getInstallation, getPendingApproval, deletePendingApproval, getSessionByTeamId } from "@/lib/db/redis";
 import { config } from "@/lib/config";
+import { isBlockActionsPayload, type SlackInteractionPayload } from "@/lib/slack/types";
 import type { ApprovalResult } from "@/workflows/approval/types";
 
 export async function POST(request: NextRequest) {
@@ -16,9 +17,9 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
     }
 
-    const payload = JSON.parse(new URLSearchParams(body).get("payload") || "{}");
+    const payload: SlackInteractionPayload = JSON.parse(new URLSearchParams(body).get("payload") || "{}");
 
-    if (payload.type === "block_actions") {
+    if (isBlockActionsPayload(payload)) {
         const action = payload.actions[0];
         const hookToken = action.value;
         const actionId = action.action_id;
@@ -38,7 +39,7 @@ export async function POST(request: NextRequest) {
         try {
             const pendingApproval = await getPendingApproval(hookToken);
             if (!pendingApproval) {
-                throw new Error("Approval not found or expired");
+                return NextResponse.json({ ok: true });
             }
 
             const installation = await getInstallation(pendingApproval.sessionId);
@@ -46,23 +47,23 @@ export async function POST(request: NextRequest) {
                 throw new Error("Installation not found");
             }
 
-            await resumeHook(hookToken, result);
-
             await deletePendingApproval(hookToken);
+
+            await resumeHook(hookToken, result);
 
             const client = new WebClient(installation.botToken);
             const originalMessage = payload.message;
-            const originalTitle = originalMessage.blocks[1]?.text?.text || "Request";
+            const originalBlocks = originalMessage.blocks;
 
             await client.chat.update({
                 channel: payload.channel.id,
                 ts: originalMessage.ts,
-                blocks: buildApprovalResponseBlocks(originalTitle, result.approved, user.id, comment),
+                blocks: buildApprovalResponseBlocks(originalBlocks, result.approved, user.id, comment),
                 text: `${result.approved ? "Approved" : "Denied"} by ${user.username}`,
             });
 
             return NextResponse.json({ ok: true });
-        } catch (error) {
+        } catch (error: unknown) {
             console.error("Failed to process approval:", error);
 
             try {
@@ -74,11 +75,11 @@ export async function POST(request: NextRequest) {
                         await client.chat.postEphemeral({
                             channel: payload.channel.id,
                             user: user.id,
-                            text: "⚠️ Failed to process this approval. The request may have expired or already been handled.",
+                            text: "⚠️ Failed to process this approval. Please try again or contact support.",
                         });
                     }
                 }
-            } catch (e) {
+            } catch {
                 // Ignore notification errors
             }
 

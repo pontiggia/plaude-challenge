@@ -32,16 +32,33 @@ export function ChatContainer({ teamName }: ChatContainerProps) {
         }
     };
 
-    // Convert AI SDK v5 messages to our Message type
-    const formattedMessages: Message[] = messages.map((msg) => {
-        // Extract text content from parts
+    const formattedMessages: Message[] = messages.flatMap((msg) => {
         const textContent = msg.parts
             .filter((part) => part.type === "text")
             .map((part) => ("text" in part ? part.text : ""))
             .join("");
 
-        // Check for tool invocations
         const toolPart = msg.parts.find((part) => part.type === "tool-call");
+
+        if (msg.role === "assistant" && textContent.includes("---MESSAGE_BREAK---")) {
+            const parts = textContent.split("---MESSAGE_BREAK---");
+            return parts
+                .map((part) => part.trim())
+                .filter((part) => part.length > 0)
+                .map((part, index) => ({
+                    id: `${msg.id}-${index}`,
+                    role: "assistant" as const,
+                    content: part,
+                    createdAt: new Date(),
+                    toolInvocation:
+                        index === 0 && toolPart
+                            ? {
+                                  name: "toolName" in toolPart ? (toolPart.toolName as string) : "unknown",
+                                  status: "pending" as const,
+                              }
+                            : undefined,
+                }));
+        }
 
         return {
             id: msg.id,

@@ -9,7 +9,7 @@ export interface RefundParams {
 }
 
 export async function requestRefund(params: RefundParams) {
-    "use step";
+    "use workflow";
 
     const { orderId, amount, reason, customerContext, sessionId } = params;
 
