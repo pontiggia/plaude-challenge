@@ -34,7 +34,6 @@ async function sendSlackApprovalMessage(botToken: string, channelId: string, req
         if (isSlackAPIError(error) && error.data?.error === "not_in_channel") {
             try {
                 await client.conversations.join({ channel: channelId });
-                console.log(`Successfully joined channel ${channelId}`);
 
                 await client.chat.postMessage({
                     channel: channelId,

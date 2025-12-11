@@ -51,7 +51,6 @@ export async function savePendingApproval(
     }
 ): Promise<void> {
     const key = `approval:${hookToken}`;
-    console.log("[Redis] Saving pending approval with key:", key);
     await redis.set(key, JSON.stringify(data), { ex: 86400 }); // Expire in 24h
 }
 
@@ -61,9 +60,7 @@ export async function getPendingApproval(hookToken: string): Promise<{
     messageTs?: string;
 } | null> {
     const key = `approval:${hookToken}`;
-    console.log("[Redis] Getting pending approval with key:", key);
     const data = await redis.get(key);
-    console.log("[Redis] Got data:", data);
     if (!data) return null;
     return typeof data === "string" ? JSON.parse(data) : (data as { sessionId: string; channelId: string; messageTs?: string });
 }
