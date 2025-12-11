@@ -4,6 +4,19 @@ import { buildApprovalBlocks } from "@/lib/slack/blocks";
 import { getInstallation, savePendingApproval } from "@/lib/db/redis";
 import type { ApprovalRequest, ApprovalResult } from "./types";
 
+async function sendSlackApprovalMessage(botToken: string, channelId: string, request: ApprovalRequest, hookToken: string) {
+    "use step";
+
+    const client = new WebClient(botToken);
+    const blocks = buildApprovalBlocks(request, hookToken);
+
+    await client.chat.postMessage({
+        channel: channelId,
+        text: `New ${request.type} request: ${request.title}`,
+        blocks,
+    });
+}
+
 export async function requestApproval(request: ApprovalRequest, sessionId: string): Promise<ApprovalResult> {
     "use workflow";
 
@@ -23,14 +36,7 @@ export async function requestApproval(request: ApprovalRequest, sessionId: strin
         channelId: installation.defaultChannelId,
     });
 
-    const client = new WebClient(installation.botToken);
-    const blocks = buildApprovalBlocks(request, hookToken);
-
-    await client.chat.postMessage({
-        channel: installation.defaultChannelId,
-        text: `New ${request.type} request: ${request.title}`,
-        blocks,
-    });
+    await sendSlackApprovalMessage(installation.botToken, installation.defaultChannelId, request, hookToken);
 
     const result = await hook;
 
