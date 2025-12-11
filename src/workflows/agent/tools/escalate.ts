@@ -8,7 +8,7 @@ export interface EscalateParams {
 }
 
 export async function escalateToHuman(params: EscalateParams) {
-    "use step";
+    "use workflow";
 
     const { reason, customerMessage, suggestedAction, sessionId } = params;
 

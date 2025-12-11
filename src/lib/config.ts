@@ -21,6 +21,20 @@ export const config = {
     },
 } as const;
 
+// Log configuration on startup (once)
+if (typeof window === "undefined") {
+    console.log("\n=== Configuration Loaded ===");
+    console.log("Environment:", config.app.node_env);
+    console.log("App URL:", config.app.url);
+    console.log("Slack Redirect URL:", config.app.slack_redirect_url);
+    console.log("Slack Client ID:", config.slack.client_id ? "SET" : "MISSING");
+    console.log("Slack Client Secret:", config.slack.client_secret ? "SET" : "MISSING");
+    console.log("Slack Signing Secret:", config.slack.signing_secret ? "SET" : "MISSING");
+    console.log("Redis URL:", config.redis.url ? "SET" : "MISSING");
+    console.log("Anthropic API Key:", config.anthropic.api_key ? "SET" : "MISSING");
+    console.log("=== End Configuration ===\n");
+}
+
 export function validate_config() {
     const required = {
         ANTHROPIC_API_KEY: config.anthropic.api_key,
