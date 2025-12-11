@@ -5,7 +5,7 @@ import { getInstallation, savePendingApproval } from "@/lib/db/redis";
 import type { ApprovalRequest, ApprovalResult } from "./types";
 
 export async function requestApproval(request: ApprovalRequest, sessionId: string): Promise<ApprovalResult> {
-    "use step";
+    "use workflow";
 
     const installation = await getInstallation(sessionId);
     if (!installation || !installation.defaultChannelId) {
