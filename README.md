@@ -2,6 +2,13 @@
 
 Plaude is a Next.js application that integrates with Slack to provide AI-powered assistance with human-in-the-loop approval workflows.
 
+## Live Demo
+
+The app is fully deployed and working end-to-end:
+
+-   **App URL:** [plaude-challenge.vercel.app](https://plaude-challenge.vercel.app)
+-   **Install Slack App:** [Add to Slack](https://slack.com/oauth/v2/authorize?client_id=7186832954454.10101876616836&scope=channels:read,chat:write,groups:read,users:read,channels:join&user_scope=)
+
 ## Features
 
 -   Slack OAuth integration for bot installation
