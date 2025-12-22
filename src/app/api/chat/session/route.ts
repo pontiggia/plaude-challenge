@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getSessionId } from "@/lib/session";
 import { getConversation, createConversation } from "@/lib/db/redis";
+import { errorResponse, successResponse } from "@/lib/api/errors";
 
-export async function GET() {
+export async function GET(): Promise<NextResponse> {
     try {
         const sessionId = await getSessionId();
         let conversation = await getConversation(sessionId);
@@ -12,12 +13,11 @@ export async function GET() {
             conversation = await createConversation(sessionId);
         }
 
-        return NextResponse.json({
+        return successResponse({
             conversation,
             isNew,
         });
     } catch (error) {
-        console.error("Error fetching conversation:", error);
-        return NextResponse.json({ error: "Failed to fetch conversation" }, { status: 500 });
+        return errorResponse(error);
     }
 }

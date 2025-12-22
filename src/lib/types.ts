@@ -30,3 +30,29 @@ export interface Conversation {
     createdAt: number;
     lastActivityAt: number;
 }
+
+export interface ToolSuccessResult {
+    success: true;
+    message: string;
+    data?: Record<string, unknown>;
+}
+
+export interface ToolFailureResult {
+    success: false;
+    message: string;
+    reason?: string;
+    error?: string;
+}
+
+export type ToolResult = ToolSuccessResult | ToolFailureResult;
+
+export interface RefundSuccessResult extends ToolSuccessResult {
+    refundId: string;
+    approverComment?: string;
+}
+
+export interface RefundFailureResult extends ToolFailureResult {
+    declinedBy?: string;
+}
+
+export type RefundResult = RefundSuccessResult | RefundFailureResult;

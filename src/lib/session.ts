@@ -1,8 +1,6 @@
 import { cookies } from "next/headers";
 import { v4 as uuidv4 } from "uuid";
-import { config } from "@/lib/config";
-
-const SESSION_COOKIE_NAME = "plaude_session";
+import { SESSION_COOKIE_NAME, COOKIE_OPTIONS } from "@/lib/constants";
 
 export async function getSessionId(): Promise<string> {
     const cookieStore = await cookies();
@@ -17,16 +15,7 @@ export async function getSessionId(): Promise<string> {
 
 export async function setSessionCookie(sessionId: string): Promise<void> {
     const cookieStore = await cookies();
-
-    const cookieOptions = {
-        httpOnly: true,
-        secure: config.app.node_env === "production",
-        sameSite: "lax" as const,
-        maxAge: 60 * 60 * 24 * 30,
-        path: "/",
-    };
-
-    cookieStore.set(SESSION_COOKIE_NAME, sessionId, cookieOptions);
+    cookieStore.set(SESSION_COOKIE_NAME, sessionId, COOKIE_OPTIONS);
 }
 
 export async function clearSession(): Promise<void> {

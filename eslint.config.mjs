@@ -13,6 +13,20 @@ const eslintConfig = defineConfig([
         "build/**",
         "next-env.d.ts",
     ]),
+    // Custom rules for code quality
+    {
+        rules: {
+            "@typescript-eslint/explicit-function-return-type": [
+                "error",
+                {
+                    allowExpressions: true,
+                    allowTypedFunctionExpressions: true,
+                },
+            ],
+            "no-console": ["error", { allow: ["warn", "error"] }],
+            "no-duplicate-imports": "error",
+        },
+    },
 ]);
 
 export default eslintConfig;

@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { getSlackClient } from "@/lib/slack/client";
+import { errorResponse, successResponse } from "@/lib/api/errors";
+import { AuthenticationError, SlackError } from "@/lib/errors/custom-errors";
+import { logger } from "@/lib/logger";
 
-export async function GET() {
-    const client = await getSlackClient();
-
-    if (!client) {
-        return NextResponse.json({ error: "Not connected to Slack" }, { status: 401 });
-    }
-
+export async function GET(): Promise<NextResponse> {
     try {
+        const client = await getSlackClient();
+
+        if (!client) {
+            throw new AuthenticationError("Not connected to Slack");
+        }
+
         const publicChannels = await client.conversations.list({
             types: "public_channel",
             exclude_archived: true,
@@ -27,9 +30,12 @@ export async function GET() {
             isPrivate: ch.is_private,
         }));
 
-        return NextResponse.json({ channels });
+        return successResponse({ channels });
     } catch (error) {
-        console.error("Failed to fetch channels:", error);
-        return NextResponse.json({ error: "Failed to fetch channels" }, { status: 500 });
+        logger.error("Failed to fetch channels", { error });
+        if (error instanceof AuthenticationError) {
+            return errorResponse(error);
+        }
+        return errorResponse(new SlackError("Failed to fetch channels"));
     }
 }

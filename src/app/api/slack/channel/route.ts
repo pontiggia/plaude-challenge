@@ -1,34 +1,33 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getInstallation, saveInstallation } from "@/lib/db/redis";
-import { getSessionId } from "@/lib/session";
+import { saveInstallation } from "@/lib/db/redis";
+import { getAuthenticatedContext } from "@/lib/api/auth";
+import { errorResponse, successResponse } from "@/lib/api/errors";
 
-export async function POST(request: NextRequest) {
-    const { channelId } = await request.json();
-    const sessionId = await getSessionId();
-    const installation = await getInstallation(sessionId);
+export async function POST(request: NextRequest): Promise<NextResponse> {
+    try {
+        const { channelId } = await request.json();
+        const { sessionId, installation } = await getAuthenticatedContext();
 
-    if (!installation) {
-        return NextResponse.json({ error: "Not connected to Slack" }, { status: 401 });
+        await saveInstallation(sessionId, {
+            ...installation,
+            defaultChannelId: channelId,
+        });
+
+        return successResponse({ success: true });
+    } catch (error) {
+        return errorResponse(error);
     }
-
-    await saveInstallation(sessionId, {
-        ...installation,
-        defaultChannelId: channelId,
-    });
-
-    return NextResponse.json({ success: true });
 }
 
-export async function GET() {
-    const sessionId = await getSessionId();
-    const installation = await getInstallation(sessionId);
+export async function GET(): Promise<NextResponse> {
+    try {
+        const { installation } = await getAuthenticatedContext();
 
-    if (!installation) {
-        return NextResponse.json({ error: "Not connected" }, { status: 401 });
+        return successResponse({
+            channelId: installation.defaultChannelId,
+            teamName: installation.teamName,
+        });
+    } catch (error) {
+        return errorResponse(error);
     }
-
-    return NextResponse.json({
-        channelId: installation.defaultChannelId,
-        teamName: installation.teamName,
-    });
 }

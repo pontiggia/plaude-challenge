@@ -8,6 +8,7 @@ import { ChatHeader } from "./chat-header";
 import { useTypingDetector } from "@/hooks/use-typing-detector";
 import { useMessageBatcher } from "@/hooks/use-message-batcher";
 import type { Message } from "@/lib/types";
+import { MESSAGE_BREAK_SEPARATOR } from "@/lib/constants";
 
 interface UserMessageWithBatch extends Message {
     batchIndex: number;
@@ -87,8 +88,8 @@ export function ChatContainer({ teamName }: ChatContainerProps) {
             const toolPart = msg.parts.find((part) => part.type === "tool-call");
 
             // Handle MESSAGE_BREAK for tool responses - split into multiple display messages
-            if (textContent.includes("---MESSAGE_BREAK---")) {
-                const parts = textContent.split("---MESSAGE_BREAK---");
+            if (textContent.includes(MESSAGE_BREAK_SEPARATOR)) {
+                const parts = textContent.split(MESSAGE_BREAK_SEPARATOR);
                 return parts
                     .map((part) => part.trim())
                     .filter((part) => part.length > 0)

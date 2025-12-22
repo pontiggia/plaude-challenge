@@ -7,3 +7,6 @@ export { FormCard, FormCardIcon, FormCardHeader } from "./form-card";
 export { Logo } from "./logo";
 export { EmptyState } from "./empty-state";
 export { SuggestionChip } from "./suggestion-chip";
+
+// Hooks (re-exported for convenience)
+export { useIsMobile } from "@/hooks/use-mobile";

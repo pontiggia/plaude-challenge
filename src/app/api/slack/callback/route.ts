@@ -3,20 +3,21 @@ import { WebClient } from "@slack/web-api";
 import { saveInstallation } from "@/lib/db/redis";
 import { getSessionId, setSessionCookie } from "@/lib/session";
 import { config } from "@/lib/config";
+import { logger } from "@/lib/logger";
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest): Promise<NextResponse> {
     const searchParams = request.nextUrl.searchParams;
     const code = searchParams.get("code");
     const state = searchParams.get("state");
     const error = searchParams.get("error");
 
     if (error) {
-        console.error("OAuth error from Slack:", error);
+        logger.error("OAuth error from Slack", { error });
         return NextResponse.redirect(`${config.app.url}?error=${error}`);
     }
 
     if (!code) {
-        console.error("No code parameter received from Slack");
+        logger.error("No code parameter received from Slack");
         return NextResponse.redirect(`${config.app.url}?error=no_code`);
     }
 
@@ -56,13 +57,10 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.redirect(`${config.app.url}/setup`);
     } catch (error) {
-        console.error("=== OAuth Token Exchange Error ===");
-        console.error("Error details:", error);
-        if (error instanceof Error) {
-            console.error("Error message:", error.message);
-            console.error("Error stack:", error.stack);
-        }
-        console.error("=== End OAuth Error ===\n");
+        logger.error("OAuth token exchange failed", {
+            error: error instanceof Error ? error.message : String(error),
+            stack: error instanceof Error ? error.stack : undefined,
+        });
         return NextResponse.redirect(`${config.app.url}?error=oauth_failed`);
     }
 }

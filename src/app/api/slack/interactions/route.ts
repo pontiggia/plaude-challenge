@@ -7,14 +7,18 @@ import { getInstallation, getPendingApproval, deletePendingApproval, getSessionB
 import { config } from "@/lib/config";
 import { isBlockActionsPayload, type SlackInteractionPayload } from "@/lib/slack/types";
 import type { ApprovalResult } from "@/workflows/approval/types";
+import { logger } from "@/lib/logger";
+import { errorResponse } from "@/lib/api/errors";
+import { AuthenticationError } from "@/lib/errors/custom-errors";
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest): Promise<NextResponse> {
     const body = await request.text();
     const signature = request.headers.get("x-slack-signature") || "";
     const timestamp = request.headers.get("x-slack-request-timestamp") || "";
 
     if (!verifySlackRequest(config.slack.signing_secret, signature, timestamp, body)) {
-        return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+        logger.warn("Invalid Slack signature in interactions endpoint");
+        return errorResponse(new AuthenticationError("Invalid signature"));
     }
 
     const payload: SlackInteractionPayload = JSON.parse(new URLSearchParams(body).get("payload") || "{}");
@@ -64,7 +68,7 @@ export async function POST(request: NextRequest) {
 
             return NextResponse.json({ ok: true });
         } catch (error: unknown) {
-            console.error("Failed to process approval:", error);
+            logger.error("Failed to process approval", { error, teamId, hookToken });
 
             try {
                 const sessionId = await getSessionByTeamId(teamId);
@@ -79,11 +83,11 @@ export async function POST(request: NextRequest) {
                         });
                     }
                 }
-            } catch {
-                // Ignore notification errors
+            } catch (notificationError) {
+                logger.warn("Failed to send error notification to user", { notificationError });
             }
 
-            return NextResponse.json({ error: "Failed to process" }, { status: 500 });
+            return errorResponse(error);
         }
     }
 

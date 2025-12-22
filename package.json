@@ -6,7 +6,8 @@
         "dev": "next dev",
         "build": "next build",
         "start": "next start",
-        "lint": "eslint"
+        "lint": "eslint && pnpm run lint:duplicates",
+        "lint:duplicates": "jscpd --min-lines 5 --min-tokens 50 src/"
     },
     "dependencies": {
         "@ai-sdk/anthropic": "^2.0.54",
@@ -77,6 +78,7 @@
         "babel-plugin-react-compiler": "1.0.0",
         "eslint": "^9",
         "eslint-config-next": "16.0.8",
+        "jscpd": "^4.0.5",
         "tailwindcss": "^4",
         "typescript": "^5"
     }
