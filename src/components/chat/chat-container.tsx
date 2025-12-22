@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useChat } from "@ai-sdk/react";
 import { MessageList } from "./message-list";
 import { InputForm } from "./input-form";
@@ -25,29 +25,60 @@ export function ChatContainer({ teamName }: ChatContainerProps) {
     const [userMessages, setUserMessages] = useState<UserMessageWithBatch[]>([]);
     // Current batch index - increments after each AI response
     const batchIndexRef = useRef(0);
-    const { messages, sendMessage } = useChat();
+    // Queue for messages sent while processing - prevents duplicate responses
+    const messageQueueRef = useRef<string[]>([]);
+    const isProcessingRef = useRef(false);
+    const { messages, sendMessage, status } = useChat();
 
     const { typingState, handleKeyDown } = useTypingDetector();
 
+    // Process queued messages - sends combined batch to AI
+    const processQueue = useCallback(async () => {
+        if (messageQueueRef.current.length === 0 || isProcessingRef.current) return;
+
+        isProcessingRef.current = true;
+        setIsLoading(true);
+
+        // Take all queued messages and combine them
+        const messagesToSend = messageQueueRef.current.splice(0);
+        const combinedMessage = messagesToSend.join("\n");
+
+        await sendMessage({ text: combinedMessage });
+        // Note: sendMessage resolves when request starts, not when streaming completes
+        // The useEffect below watches status to detect completion
+    }, [sendMessage]);
+
+    // Watch for streaming completion to process any queued messages
+    useEffect(() => {
+        // When status changes from streaming to ready, processing is complete
+        if (status === "ready" && isProcessingRef.current) {
+            isProcessingRef.current = false;
+            setIsLoading(false);
+            // Increment batch index for next group of messages
+            batchIndexRef.current += 1;
+
+            // If more messages were queued during processing, send them now
+            if (messageQueueRef.current.length > 0) {
+                processQueue();
+            }
+        }
+    }, [status, processQueue]);
+
+    // Called when message batcher is ready to send
     const handleBatchReady = useCallback(
-        async (batchedMessages: string[]) => {
+        (batchedMessages: string[]) => {
             if (batchedMessages.length === 0) return;
 
-            // Capture current batch index before incrementing
-            const currentBatch = batchIndexRef.current;
+            // Add messages to queue
+            messageQueueRef.current.push(...batchedMessages);
 
-            setIsLoading(true);
-            try {
-                // Combine batched messages for the AI to process together
-                const combinedMessage = batchedMessages.join("\n");
-                await sendMessage({ text: combinedMessage });
-                // Increment batch index for next group of messages
-                batchIndexRef.current = currentBatch + 1;
-            } finally {
-                setIsLoading(false);
+            // If not currently processing, start processing the queue
+            if (!isProcessingRef.current) {
+                processQueue();
             }
+            // If processing, messages stay in queue and will be sent when current response completes
         },
-        [sendMessage]
+        [processQueue]
     );
 
     // Batch messages silently - no UI indication
